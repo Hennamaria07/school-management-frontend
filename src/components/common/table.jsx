@@ -9,13 +9,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import moment from 'moment'
-import { axiosInstance } from '@/lib/utils'
-import { DELETE_LIBRARIAN, DELETE_STAFF, DELETE_STUDENT, UPDATE_LIBRARIAN, UPDATE_STAFF, UPDATE_STUDENT } from '@/lib/constants'
+import { DELETE_LIBRARIAN, UPDATE_LIBRARIAN,} from '@/lib/constants'
 import { Flip, toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { deleteStudent, fetchStudents } from '@/redux/features/studentSlice'
+import { deleteStaff, updateStaff } from '@/redux/features/staffSlice'
 
 const formSchema = z.object({
   _id: z.string(),
@@ -76,28 +76,33 @@ const StaffTable = ({ data, role }) => {
       }
 
       // Role-based endpoint logic
-      const url = role.toLowerCase() === 'staff'
-        ? `${UPDATE_STAFF}/${values._id}`
-        : role.toLowerCase() === 'librarian'
+      const url = role.toLowerCase() === 'librarian'
           ? `${UPDATE_LIBRARIAN}/${values._id}`
-          : role.toLowerCase() === 'student' ?
-            `${UPDATE_STUDENT}/${values._id}` : "";
+          : "";
+if(role.toLowerCase() === 'staff'){
+  dispatch(updateStaff({formData : values, id: values._id}))
+  .unwrap()
+  .then((res) => {
+    toast.success(res.message || 'Staff updated successfully!');
+    setIsDialogOpen(false);
+  })
+  .catch((err) => {
+    toast.error(err.message || 'An error occurred.');
+    console.error('Error updating:', err);
+  });
+}
 
-      if (!url) {
-        throw new Error("Invalid role provided");
-      }
+      // const response = await axiosInstance.put(url, formData, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data'
+      //   },
+      //   withCredentials: true
+      // });
 
-      const response = await axiosInstance.put(url, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
-      });
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setIsDialogOpen(false);
-      }
+      // if (response.data.success) {
+      //   toast.success(response.data.message);
+      //   setIsDialogOpen(false);
+      // }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
       console.error('Error updating:', error);
@@ -118,21 +123,28 @@ const StaffTable = ({ data, role }) => {
 
   const handleDelete = async (id) => {
     try {
-      const url = role.toLowerCase() === 'staff'
-        ? `${DELETE_STAFF}/${id}`
-        : role.toLowerCase() === 'librarian'
+      const url = role.toLowerCase() === 'librarian'
           ? `${DELETE_LIBRARIAN}/${id}`
-          : role.toLowerCase() === 'student' ?
-            `${DELETE_STUDENT}/${id}` : "";
+          :  "";
       if (role.toLowerCase() === 'student') {
         dispatch(deleteStudent(id))
           .unwrap()
           .then(res => {
-            toast.success(res.message || `Student deleted successfully`);
             dispatch(fetchStudents())
+            alert('Student deleted successfully');
           })
           .catch(err => {
             toast.error(err.message || err)
+          })
+      } else if (role.toLowerCase() === 'staff') {
+        dispatch(deleteStaff(id))
+          .unwrap()
+          .then(res => {
+            toast.success('Staff deleted successfully');
+            dispatch(fetchStaffs());
+          })
+          .catch(err => {
+            console.log('Error deleting staff');
           })
       }
       else {

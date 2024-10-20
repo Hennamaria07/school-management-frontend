@@ -17,7 +17,7 @@ export const fetchStaffs = createAsyncThunk("staff/fetchStaffs", async () => {
             withCredentials: true});
         return response.data.data;
     } catch (error) {
-        throw error?.response?.data?.message || error.message;
+        throw error?.response?.data?.message || error?.message;
     }
 });
 
@@ -60,16 +60,19 @@ export const updateStaff = createAsyncThunk("staff/updateStaff", async ({ formDa
     }
 })
 
-export const deleteStaff = createAsyncThunk("staff/deleteStaff", async (id) => {
+export const deleteStaff = createAsyncThunk("staff/deleteStaff", async (id, { rejectWithValue }) => {
     try {
-        const response = await axiosInstance.delete(`${DELETE_STAFF}/${id}`, {
-            withCredentials: true
-        });
-        return response.data.data;
+      const response = await axiosInstance.delete(`${DELETE_STAFF}/${id}`, {
+        withCredentials: true
+      });
+      
+      return id;
     } catch (error) {
-        throw error.response.data.message || error.message;
+      // Return an error message to the component
+      return rejectWithValue(error?.response?.data?.message || error?.message);
     }
-});
+  });
+  
 
 
 const staffSlice = createSlice({
@@ -111,6 +114,10 @@ const staffSlice = createSlice({
                 state.isLoading = false;
                 state.isSuccess = true;
                 state.message = action.payload.message;
+                state.staffs = state.staffs.filter(
+                    staff => staff._id !== action.payload
+                );
+                state.message = "Student deleted successfully";
             })
             .addCase(deleteStaff.rejected, (state, action) => {
                 state.isLoading = false;
