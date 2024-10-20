@@ -12,6 +12,9 @@ import { Flip, ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { axiosInstance } from '@/lib/utils';
 import { ALL_STUDENTS, DELETE_FEES, UPDATE_FEES } from '@/lib/constants';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchStudents } from '@/redux/features/studentSlice';
+import { deleteFees, updateFees } from '@/redux/features/feesSlice';
 
 const feeTypes = [
   { value: 'tuition', label: 'Tuition Fee' },
@@ -25,8 +28,8 @@ const feeTypes = [
 const HistoryTable = ({ data = [], role }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const students = useSelector((state) => state.student.students);
+  const dispatch = useDispatch();
 
   const form = useForm({
     defaultValues: {
@@ -41,24 +44,8 @@ const HistoryTable = ({ data = [], role }) => {
 
   // Fetch students data
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setIsLoading(true);
-        const response = await axiosInstance.get(ALL_STUDENTS, {
-          withCredentials: true});
-        if (response.data.success) {
-          setStudents(response.data.data);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Error fetching students');
-        console.error('Error fetching students:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, []);
+    dispatch(fetchStudents())
+  }, [dispatch]);
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -74,41 +61,46 @@ const HistoryTable = ({ data = [], role }) => {
   };
 
   const handleDelete = async (id) => {
-    try {
-        const url = role === "fees" ? `${DELETE_FEES}/${id}` : null
-      const response = await axiosInstance.delete(`${url}`, {
-        withCredentials: true
+    dispatch(deleteFees(id))
+      .unwrap()
+      .then((res) => {
+        toast.success(res.message || 'Fee deleted successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message || 'An error occurred');
+        console.error('Error deleting fee:', err);
       });
-      
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // You might want to trigger a refresh of the data here
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error deleting record');
-      console.error('Error deleting record:', error);
-    }
   };
 
   const onSubmit = async (values) => {
-    try {
-        const url = role === "fees" ? `${UPDATE_FEES}/${values._id}` : null
-        console.log('values-->', values)
-      const response = await axiosInstance.put(`${url}`, values, {
-        withCredentials: true
+    // try {
+    //   const url = role === "fees" ? `${UPDATE_FEES}/${values._id}` : null
+    //   console.log('values-->', values)
+    //   const response = await axiosInstance.put(`${url}`, values, {
+    //     withCredentials: true
+    //   });
+
+    //   if (response.data.success) {
+    //     toast.success(response.data.message);
+    //     setTimeout(() => {
+    //       setIsDialogOpen(false);
+    //     }, 1500);
+    //     // You might want to trigger a refresh of the data here
+    //   }
+    // } catch (error) {
+    //   toast.error(error.response?.data?.message || 'Error updating record');
+    //   console.error('Error updating record:', error);
+    // }
+    dispatch(updateFees({ formData: values, id: values._id }))
+      .unwrap()
+      .then((res) => {
+        toast.success(res.message || 'Fee updated successfully');
+        setIsDialogOpen(false);
+      })
+      .catch((err) => {
+        // toast.error(err.message || 'An error occurred');
+        console.error('Error updating fee:', err);
       });
-      
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setTimeout(() => {
-          setIsDialogOpen(false);
-        }, 1500);
-        // You might want to trigger a refresh of the data here
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error updating record');
-      console.error('Error updating record:', error);
-    }
   };
 
   return (
@@ -143,9 +135,9 @@ const HistoryTable = ({ data = [], role }) => {
           {data?.map((item) => (
             <TableRow key={item._id}>
               <TableCell>
-                <img 
-                  src={item?.student?.photo?.url} 
-                  alt={item?.student?.name} 
+                <img
+                  src={item?.student?.photo?.url}
+                  alt={item?.student?.name}
                   className="w-10 h-10 rounded-full object-cover"
                 />
               </TableCell>
@@ -154,28 +146,27 @@ const HistoryTable = ({ data = [], role }) => {
               <TableCell>₹{item.amount}</TableCell>
               <TableCell>{moment(item.paymentDate).format('DD-MM-YYYY')}</TableCell>
               <TableCell>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  item.status === 'paid' ? 'bg-green-100 text-green-800' :
-                  item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  item.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span className={`px-2 py-1 rounded-full text-xs ${item.status === 'paid' ? 'bg-green-100 text-green-800' :
+                    item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      item.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                  }`}>
                   {item.status}
                 </span>
               </TableCell>
               <TableCell>
                 <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleEdit(item)}
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleDelete(item._id)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -227,7 +218,7 @@ const HistoryTable = ({ data = [], role }) => {
                   </FormItem>
                 )}
               />
-              
+
 
               <FormField
                 control={form.control}
@@ -236,8 +227,8 @@ const HistoryTable = ({ data = [], role }) => {
                   <FormItem>
                     <FormLabel>Fee Type</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="text" 
+                      <Input
+                        type="text"
                         {...field}
                         onChange={(e) => field.onChange(e.target.value)}
                       />
@@ -254,8 +245,8 @@ const HistoryTable = ({ data = [], role }) => {
                   <FormItem>
                     <FormLabel>Amount (₹)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                       />
@@ -272,8 +263,8 @@ const HistoryTable = ({ data = [], role }) => {
                   <FormItem>
                     <FormLabel>Payment Date</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="date" 
+                      <Input
+                        type="date"
                         {...field}
                       />
                     </FormControl>

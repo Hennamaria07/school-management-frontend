@@ -17,8 +17,6 @@ import { fetchFees } from '@/redux/features/feesSlice';
 
 const StaffFeeHistory = () => {
   const role = useSelector(state => state.auth.userInfo.role);
-  const navigate = useNavigate();
-  const loading = useSelector((state) => state.student.isLoading);
   const data = useSelector((state) => state.fees.studentFeesHistory);
   const students = useSelector((state) => state.student.students);
   console.log(data, 'std')
@@ -37,7 +35,7 @@ const StaffFeeHistory = () => {
   useEffect(() => {
     dispatch(fetchFees());
     dispatch(fetchStudents());
-  }, [dispatch]);
+  }, [dispatch, data]);
 
   const openDialog = (fee = null) => {
     if (fee) {
