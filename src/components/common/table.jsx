@@ -126,7 +126,7 @@ if(role.toLowerCase() === 'librarian'){
           .unwrap()
           .then(res => {
             dispatch(fetchStudents())
-            alert('Student deleted successfully');
+            toast.success('Student deleted successfully');
           })
           .catch(err => {
             toast.error(err.message || err)

@@ -10,16 +10,17 @@ import { useForm } from 'react-hook-form';
 import moment from 'moment';
 import { Flip, ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { axiosInstance } from '@/lib/utils';
-import { ALL_STUDENTS, ALL_LIBRARY, UPDATE_LIBRARY, DELETE_LIBRARY } from '@/lib/constants';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchStudents } from '@/redux/features/studentSlice';
+import { deleteLibraryHistory, updateLibraryHistory } from '@/redux/features/librarySlice';
 
 const LibraryHistoryTable = ({ data = [], role }) => {
   const userRole = useSelector((state) => state.auth.userInfo.role);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [students, setStudents] = useState([]);
+  const students = useSelector((state) => state.student.students);
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const form = useForm({
     defaultValues: {
@@ -34,24 +35,8 @@ const LibraryHistoryTable = ({ data = [], role }) => {
 
   // Fetch students data
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setIsLoading(true);
-        const response = await axiosInstance.get(ALL_STUDENTS, {
-          withCredentials: true});
-        if (response.data.success) {
-          setStudents(response.data.data);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Error fetching students');
-        console.error('Error fetching students:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, []);
+    dispatch(fetchStudents());
+  }, [dispatch]);
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -67,36 +52,28 @@ const LibraryHistoryTable = ({ data = [], role }) => {
   };
 
   const handleDelete = async (id) => {
-    try {
-      const response = await axiosInstance.delete(`${DELETE_LIBRARY}/${id}`, {
-        withCredentials: true
+    dispatch(deleteLibraryHistory(id))
+      .unwrap()
+      .then((res) => {
+        toast.success(res.message || 'Library record deleted successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message || 'An error occurred');
+        console.error('Error deleting record:', err);
       });
-      
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // You might want to trigger a refresh of the data here
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error deleting record');
-      console.error('Error deleting record:', error);
-    }
   };
 
   const onSubmit = async (values) => {
-    try {
-      const response = await axiosInstance.put(`${UPDATE_LIBRARY}/${values._id}`, values, {
-        withCredentials: true
-      });
-      
-      if (response.data.success) {
+    dispatch(updateLibraryHistory({ formData: values, id: values._id }))
+      .unwrap()
+      .then((res) => {
+        toast.success(res.message || 'Library record updated successfully');
         setIsDialogOpen(false);
-        toast.success(response.data.message);
-        // You might want to trigger a refresh of the data here
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error updating record');
-      console.error('Error updating record:', error);
-    }
+      })
+      .catch((err) => {
+        toast.error(err.message || 'An error occurred');
+        console.error('Error updating record:', err);
+      });
   };
 
   return (

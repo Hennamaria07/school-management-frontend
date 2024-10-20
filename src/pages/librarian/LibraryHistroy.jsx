@@ -1,46 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { Flip, ToastContainer, toast } from 'react-toastify';
 import { Title } from '@/components';
-import { ALL_LIBRARY, ALL_STUDENTS, CREATE_LIBRARY, UPDATE_LIBRARY } from '@/lib/constants';
-import { axiosInstance } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import HistoryTable from '@/components/common/HistroyTable';
 import LibraryHistoryTable from '@/components/common/LibraryHistroyTabel';
+import { createLibraryHistory, fetchLibraries } from '@/redux/features/librarySlice';
+import { fetchStudents } from '@/redux/features/studentSlice';
 
 const LibraryHistory = () => {
   const role = useSelector(state => state.auth.userInfo.role);
-  const navigate = useNavigate();
-  const [data, setData] = useState([]);
-  const [students, setStudents] = useState([]);
+  const dispatch = useDispatch();
+  const data = useSelector(state => state.library.librariesHistory);
+  const students = useSelector(state => state.student.students);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
 
-  const fetchHistory = () => {
-    axiosInstance
-      .get(ALL_LIBRARY)
-      .then(res => setData(res.data.data))
-      .catch(err => console.log(err.response?.data?.message || err.message));
-  };
-
-  const fetchStudents = () => {
-    axiosInstance
-      .get(ALL_STUDENTS, { withCredentials: true })
-      .then(res => setStudents(res.data.data))
-      .catch(err => console.log(err.response?.data?.message || err.message));
-  };
 
   useEffect(() => {
-    fetchHistory();
-    fetchStudents();
-  }, [data]);
+    dispatch(fetchLibraries());
+    dispatch(fetchStudents());
+  }, [dispatch, students, data]);
 
   const openDialog = (record = null) => {
     if (record) {
@@ -58,21 +43,16 @@ const LibraryHistory = () => {
   };
 
   const onSubmit = (data) => {
-    const url = isEditing ? `${UPDATE_LIBRARY}/${data._id}` : CREATE_LIBRARY;
-    const method = isEditing ? 'put' : 'post';
-
-    axiosInstance[method](url, data)
-      .then(() => {
-        toast.success(`Library record ${isEditing ? 'updated' : 'added'} successfully`);
+    dispatch(createLibraryHistory(data))
+      .unwrap()
+      .then((res) => {
+        toast.success(res.message || 'Library record updated successfully');
         setIsDialogOpen(false);
-        setTimeout(() => {
-          fetchHistory();
-          reset();
-        }, 1500);
       })
-      .catch(err => {
-        toast.error(err.response?.data?.message || 'An error occurred');
-      });
+      .catch((err) => {
+        toast.error(err.message || 'An error occurred');
+        console.error('Error updating record:', err);
+      })
   };
 
   return (

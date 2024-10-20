@@ -16,7 +16,7 @@ const Student = () => {
     
     useEffect(() => {
       dispatch(fetchStudents());
-    }, [dispatch]);
+    }, [dispatch, data]);
   
     // if (isLoading) {
     //   return <div className="text-center text-xl font-600 py-8">Loading...</div>;
