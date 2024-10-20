@@ -91,7 +91,7 @@ const LibraryHistory = () => {
         transition={Flip}
       />
       <Title title="Library History Management" />
-      {role === 'librarian' ? '' : (
+      {role === 'staff' ? '' : (
         <div className='flex justify-end mb-5'>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

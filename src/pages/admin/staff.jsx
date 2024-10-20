@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { ALL_STAFF, CREATE_STAFF } from '@/lib/constants'
-import { axiosInstance } from '@/lib/utils'
 import Table from '@/components/common/table'
 import { Flip, toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { createStaff, fetchStaffs } from '@/redux/features/staffSlice'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -34,11 +33,12 @@ const formSchema = z.object({
 
 const AdminStaff = () => {
     const role = useSelector((state) => state.auth.userInfo.role);
-    const [data, setData] = useState([])
+    const data = useSelector((state) => state.staff.staffs);
     const [isOpen, setIsOpen] = useState(false)
     const [photoPreview, setPhotoPreview] = useState(null)
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -49,39 +49,28 @@ const AdminStaff = () => {
             photo: undefined
         }
     })
-
-    const fetchStaffData = () => {
-        axiosInstance.get(ALL_STAFF, {withCredentials: true})
-            .then(res => setData(res.data.data))
-            .catch(err => toast.error(err.response?.data?.message || err.message))
-    }
     
     useEffect(() => {
-        fetchStaffData()
-    }, [data])
+       dispatch(fetchStaffs());
+    }, [dispatch, data])
 
     const onSubmit = async (values) => {
+        setLoading(true)
+        const formData = new FormData();
+        formData.append('name', values.name)
+        formData.append('email', values.email)
+        formData.append('password', values.password)
+        formData.append('photo', values.photo)
         try {
-            setLoading(true)
-            const formData = new FormData();
-            formData.append('name', values.name)
-            formData.append('email', values.email)
-            formData.append('password', values.password)
-            formData.append('photo', values.photo)
-
-            const response = await axiosInstance.post(CREATE_STAFF, formData, { 
-                withCredentials: true 
-            })
-            
-            toast.success(response.data.message)
-            setIsOpen(false)
-            form.reset()
-            setPhotoPreview(null)
-            fetchStaffData() // Refresh the staff list
+            const result = await dispatch(createStaff(formData)).unwrap();
+            toast.success(`${values.name} created successfully!`);
+            setIsOpen(false);
+            form.reset();
+            setPhotoPreview(null);
         } catch (err) {
-            toast.error(err.response?.data?.message || err.message)
+            toast.error(err?.message || err || "An error occurred while creating staff");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }
 

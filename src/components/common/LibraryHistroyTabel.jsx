@@ -89,10 +89,8 @@ const LibraryHistoryTable = ({ data = [], role }) => {
       });
       
       if (response.data.success) {
+        setIsDialogOpen(false);
         toast.success(response.data.message);
-        setTimeout(() => {
-          setIsDialogOpen(false);
-        }, 1500);
         // You might want to trigger a refresh of the data here
       }
     } catch (error) {
@@ -126,7 +124,7 @@ const LibraryHistoryTable = ({ data = [], role }) => {
             <TableHead>Borrow Date</TableHead>
             <TableHead>Return Date</TableHead>
             <TableHead>Status</TableHead>
-            {userRole === 'librarian' ? ''  : <TableHead>Action</TableHead>}
+            {userRole === 'staff' ? ''  : <TableHead>Action</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -153,7 +151,7 @@ const LibraryHistoryTable = ({ data = [], role }) => {
                   {item.status}
                 </span>
               </TableCell>
-              {userRole === 'librarian' ? ''  : (
+              {userRole === 'staff' ? ''  : (
               <TableCell>
                 <div className="flex space-x-2">
                   <Button 

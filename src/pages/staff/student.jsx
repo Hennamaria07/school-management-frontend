@@ -1,54 +1,61 @@
-import { Title } from '@/components';
-import { Button } from '@/components/ui/button'
-import Table from '@/components/common/table'
-import { ALL_STUDENTS } from '@/lib/constants';
-import { axiosInstance } from '@/lib/utils';
-import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Flip, ToastContainer } from 'react-toastify'
+import { Title } from "@/components";
+import { Button } from "@/components/ui/button";
+import { fetchStudents } from "@/redux/features/studentSlice";
+import Table from '@/components/common/table';
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Flip, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css'
 
 const Student = () => {
-  const role = useSelector(state => state.auth.userInfo.role);
-  const navigate = useNavigate();
-  const [data, setData] = useState([]);
+    const role = useSelector(state => state.auth.userInfo.role);
+    const { students: data, isLoading, isError } = useSelector((state) => state.student);
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    
     useEffect(() => {
-        axiosInstance
-        .get(ALL_STUDENTS, {withCredentials: true})
-        .then(res => setData(res.data.data))
-        .catch(err =>console.log(err.response?.data?.message || err.message))
-    }, [])
-  return (
-    <div>
+      dispatch(fetchStudents());
+    }, [dispatch]);
+  
+    // if (isLoading) {
+    //   return <div className="text-center text-xl font-600 py-8">Loading...</div>;
+    // }
+  
+    if (isError) {
+      return <div className="text-center text-xl font-600 py-8">Error loading students</div>;
+    }
+  
+    return (
+      <div>
         <ToastContainer
-            position="top-center"
-            autoClose={2000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-            transition={Flip}
+          position="top-center"
+          autoClose={2000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Flip}
         />
         <Title title="Student Management" />
-        {role === 'librarian' ? '' : (
-            <div className='flex justify-end mb-5'>
+        {role === 'librarian' ? null : (
+          <div className='flex justify-end mb-5'>
             <Button onClick={() => navigate(`/${role}/student/add`)}>Add Student</Button>
-        </div>
+          </div>
         )}
-        {data.length === 0 ? (
-            <div className='text-center text-xl font-600 py-8'>No Student Data</div>
+        {!data || !Array.isArray(data) || data.length === 0 ? (
+          <div className='text-center text-xl font-600 py-8'>No Student Data</div>
         ) : (
-            // Render your staff data here
-            <div>
-                <Table data={data} role={"student"} />
-            </div>
+          <div>
+            <Table data={data.filter(Boolean)} role="student" />
+          </div>
         )}
-    </div>
-)
-}
+      </div>
+    );
+  };
 
-export default Student
+  export default Student

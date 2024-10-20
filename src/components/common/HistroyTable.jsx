@@ -93,6 +93,7 @@ const HistoryTable = ({ data = [], role }) => {
   const onSubmit = async (values) => {
     try {
         const url = role === "fees" ? `${UPDATE_FEES}/${values._id}` : null
+        console.log('values-->', values)
       const response = await axiosInstance.put(`${url}`, values, {
         withCredentials: true
       });

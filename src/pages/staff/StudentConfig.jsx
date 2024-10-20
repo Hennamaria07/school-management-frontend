@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { get, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { axiosInstance } from '@/lib/utils';
 import { Flip, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { CREATE_STUDENT, STUDENT_PROFILE, UPDATE_STUDENT } from '@/lib/constants';
+import { CREATE_STUDENT, UPDATE_STUDENT } from '@/lib/constants';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { addStudent, getStudentById, resetStatus, updateStudent } from '@/redux/features/studentSlice';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -58,8 +60,11 @@ const formSchema = z.object({
 
 const StudentConfig = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { action, id } = useParams();
   const fileInputRef = useRef(null);
+  const student = useSelector((state) => state.student.student);
+  const message = useSelector((state) => state.student.message);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -82,33 +87,41 @@ const StudentConfig = () => {
     },
   });
 
+
   useEffect(() => {
-    if (action === 'edit') {
-      axiosInstance.get(`${STUDENT_PROFILE}/${id}`, {withCredentials: true})
-        .then((res) => {
-          form.reset({
-            name: res.data.data.name,
-            dateOfBirth: res.data.data.dateOfBirth,
-            gender: res.data.data.gender,
-            class: res.data.data.class,
-            phone: res.data.data.contactInfo.phone,
-            email: res.data.data.contactInfo.email,
-            photo: undefined,
-            street: res.data.data.contactInfo.address.street,
-            city: res.data.data.contactInfo.address.city,
-            state: res.data.data.contactInfo.address.state,
-            postalCode: res.data.data.contactInfo.address.postalCode,
-            guardianName: res.data.data.guardian.name,
-            guardianRelationship: res.data.data.guardian.relationship,
-            guardianPhone: res.data.data.guardian.phone,
-            guardianEmail: res.data.data.guardian.email
-          })
-        })
-        .catch((err) => {
-          toast.error(err.response?.data?.message || err.message)
-        })
+    if (action === 'edit' && id) {
+      dispatch(getStudentById(id));
     }
-  }, [action, id, form]);
+  }, [action, id, dispatch]);
+  useEffect(() => {
+    // Clean up function
+    return () => {
+      dispatch(resetStatus());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (action === 'edit' && student && student._id === id) {
+      form.reset({
+        name: student.name || "",
+        dateOfBirth: student.dateOfBirth || "",
+        gender: student.gender || "",
+        class: student.class || "",
+        phone: student.contactInfo?.phone || "",
+        email: student.contactInfo?.email || "",
+        photo: undefined,
+        street: student?.contactInfo?.address?.street || "",
+        city: student?.contactInfo?.address?.city || "",
+        state: student?.contactInfo?.address?.state || "",
+        postalCode: student?.contactInfo?.address?.postalCode || "",
+        guardianName: student?.guardian?.name || "",
+        guardianRelationship: student?.guardian?.relationship || "",
+        guardianPhone: student?.guardian?.phone || "",
+        guardianEmail: student?.guardian?.email || ""
+      });
+    }
+  }, [action, id, student, form]);
+
 
   const onSubmit = (values) => {
     const formData = new FormData();
@@ -144,28 +157,32 @@ const StudentConfig = () => {
       formData.append('photo', fileInputRef.current.files[0]);
     }
 
-    if (action === 'edit') {
-      axiosInstance.put(`${UPDATE_STUDENT}/${id}`, formData, { withCredentials: true })
-        .then(res => {
-          toast.success(res.data.message);
-          setTimeout(() => {
-            navigate(-1);
-          }, 1500)
-        })
-        .catch(err => {
-          toast.error(err.response?.data?.message || err.message);
-        })
+      if (action === 'edit') {
+        dispatch(updateStudent({id, formData}))
+          .unwrap()
+          .then(res => {
+            toast.success(`${values?.name} updated successfully`);
+            setTimeout(() => {
+              navigate(-1);
+            }, 1500)
+          })
+          .catch(err => {
+            toast.error(err || "Failed to update student");
+          });
     } else if (action === 'add') {
-      axiosInstance.post(CREATE_STUDENT, formData, { withCredentials: true })
-        .then(res => {
-          toast.success(res.data.message);
-          setTimeout(() => {
-            navigate(-1);
-          }, 1500)
-        })
-        .catch(err => toast.error(err.response?.data?.message || err.message));
-    }
+      dispatch(addStudent(formData))
+      .unwrap()
+      .then(() => {
+        toast.success("Student added successfully");
+        setTimeout(() => {
+          navigate(-1);
+        }, 1500);
+      })
+      .catch(err => {
+        toast.error(err || "Failed to add student");
+      });
   }
+}
 
   return (
     <Form {...form}>

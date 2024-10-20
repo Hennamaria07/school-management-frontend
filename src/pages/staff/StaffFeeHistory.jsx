@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Flip, ToastContainer, toast } from 'react-toastify';
 import { Title } from '@/components';
@@ -12,34 +12,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import HistoryTable from '@/components/common/HistroyTable';
+import { fetchStudents } from '@/redux/features/studentSlice';
+import { fetchFees } from '@/redux/features/feesSlice';
 
 const StaffFeeHistory = () => {
   const role = useSelector(state => state.auth.userInfo.role);
   const navigate = useNavigate();
-  const [data, setData] = useState([]);
-  const [students, setStudents] = useState([]);
+  const loading = useSelector((state) => state.student.isLoading);
+  const data = useSelector((state) => state.fees.studentFeesHistory);
+  const students = useSelector((state) => state.student.students);
+  console.log(data, 'std')
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const dispatch = useDispatch();
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
 
-  const fetchFees = () => {
-    axiosInstance
-      .get(ALL_FEES, { withCredentials: true })
-      .then(res => setData(res.data.data))
-      .catch(err => console.log(err.response?.data?.message || err.message));
-  };
-
-  const fetchStudents = () => {
-    axiosInstance
-      .get(ALL_STUDENTS, {withCredentials: true})
-      .then(res => setStudents(res.data.data))
-      .catch(err => console.log(err.response?.data?.message || err.message));
-  };
+  // const fetchFees = () => {
+  //   axiosInstance
+  //     .get(ALL_FEES, { withCredentials: true })
+  //     .then(res => setData(res.data.data))
+  //     .catch(err => console.log(err.response?.data?.message || err.message));
+  // };
 
   useEffect(() => {
-    fetchFees();
-    fetchStudents();
-  }, [data]);
+    dispatch(fetchFees());
+    dispatch(fetchStudents());
+  }, [dispatch]);
 
   const openDialog = (fee = null) => {
     if (fee) {
@@ -107,7 +105,7 @@ const StaffFeeHistory = () => {
                     <SelectValue placeholder="Select a student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {students.map((student) => (
+                    {students?.map((student) => (
                       <SelectItem key={student._id} value={student._id}>
                         {student.name}
                       </SelectItem>
@@ -158,8 +156,8 @@ const StaffFeeHistory = () => {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.status && <p className="text-red-500 text-sm mt-1">Status is required</p>}
