@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { deleteStudent, fetchStudents } from '@/redux/features/studentSlice'
 import { deleteStaff, updateStaff } from '@/redux/features/staffSlice'
+import { deleteLibrarian, fetchLibrarians, updateLibrarian } from '@/redux/features/librarianSlice'
 
 const formSchema = z.object({
   _id: z.string(),
@@ -75,10 +76,7 @@ const StaffTable = ({ data, role }) => {
         formData.append('photo', values.photo);
       }
 
-      // Role-based endpoint logic
-      const url = role.toLowerCase() === 'librarian'
-          ? `${UPDATE_LIBRARIAN}/${values._id}`
-          : "";
+      
 if(role.toLowerCase() === 'staff'){
   dispatch(updateStaff({formData : values, id: values._id}))
   .unwrap()
@@ -92,17 +90,18 @@ if(role.toLowerCase() === 'staff'){
   });
 }
 
-      // const response = await axiosInstance.put(url, formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data'
-      //   },
-      //   withCredentials: true
-      // });
-
-      // if (response.data.success) {
-      //   toast.success(response.data.message);
-      //   setIsDialogOpen(false);
-      // }
+if(role.toLowerCase() === 'librarian'){
+  dispatch(updateLibrarian({formData : values, id: values._id}))
+  .unwrap()
+  .then((res) => {
+    toast.success(res.message || 'Librarian updated successfully!');
+    setIsDialogOpen(false);
+  })
+  .catch((err) => {
+    toast.error(err.message || 'An error occurred.');
+    console.error('Error updating:', err);
+  });
+}
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
       console.error('Error updating:', error);
@@ -123,9 +122,6 @@ if(role.toLowerCase() === 'staff'){
 
   const handleDelete = async (id) => {
     try {
-      const url = role.toLowerCase() === 'librarian'
-          ? `${DELETE_LIBRARIAN}/${id}`
-          :  "";
       if (role.toLowerCase() === 'student') {
         dispatch(deleteStudent(id))
           .unwrap()
@@ -142,6 +138,16 @@ if(role.toLowerCase() === 'staff'){
           .then(res => {
             toast.success('Staff deleted successfully');
             dispatch(fetchStaffs());
+          })
+          .catch(err => {
+            console.log('Error deleting staff');
+          })
+      } else if (role.toLowerCase() === 'librarian') {
+        dispatch(deleteLibrarian(id))
+          .unwrap()
+          .then(res => {
+            toast.success('Librarian deleted successfully');
+            dispatch(fetchLibrarians());
           })
           .catch(err => {
             console.log('Error deleting staff');

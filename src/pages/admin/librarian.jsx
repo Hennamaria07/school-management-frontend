@@ -12,6 +12,8 @@ import { axiosInstance } from '@/lib/utils'
 import Table from '@/components/common/table'
 import { Flip, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useDispatch, useSelector } from 'react-redux'
+import { createLibrarian, fetchLibrarians } from '@/redux/features/librarianSlice'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -31,8 +33,8 @@ const formSchema = z.object({
 })
 
 const AdminLibrarian = () => {
-
-    const [data, setData] = useState([])
+    const dispatch = useDispatch();
+    const data = useSelector((state) => state.librarian.librarians);
     const [isOpen, setIsOpen] = useState(false)
     const [photoPreview, setPhotoPreview] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -48,10 +50,8 @@ const AdminLibrarian = () => {
     })
 
     useEffect(() => {
-        axiosInstance.get(ALL_LIBRARIANS)
-            .then(res => setData(res.data.data))
-            .catch(err => console.log(err.response?.data?.message || err.message))
-    }, [data])
+        dispatch(fetchLibrarians());
+    }, [dispatch, data])
 
     const onSubmit = (values) => {
         console.log('Submitting:', values)
@@ -61,14 +61,15 @@ const AdminLibrarian = () => {
         formData.append('password', values.password)
         formData.append('photo', values.photo)
         setLoading(true)
-        axiosInstance.post(CREATE_LIBRARIAN, formData, { withCredentials: true })
-            .then(res => {
+        dispatch(createLibrarian(formData))
+            .unwrap()
+            .then((res) => {
                 setLoading(false)
-                toast.success(res.data.message)
+                toast.success(`${values.name} created successfully!`)
             })
-            .catch(err => {
+            .catch((err) => {
                 setLoading(false)
-                toast.error(err.response?.data?.message || err.message)
+                console.log(err.response?.data?.message || err.message)
             })
         setIsOpen(false)
         form.reset()
